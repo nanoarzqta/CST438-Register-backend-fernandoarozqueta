@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
 
 import com.cst438.domain.Course;
 import com.cst438.domain.CourseRepository;
@@ -24,6 +26,7 @@ import com.cst438.domain.ScheduleDTO;
 import com.cst438.domain.Student;
 import com.cst438.domain.StudentRepository;
 import com.cst438.service.GradebookService;
+import com.cst438.domain.StudentDTO;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
@@ -69,10 +72,18 @@ public class ScheduleController {
 	@Transactional
 	public ScheduleDTO.CourseDTO addCourse( @RequestBody ScheduleDTO.CourseDTO courseDTO  ) { 
 
+		System.out.println("/schedule - addCourse " + courseDTO.toString());
+		
+		//String student_email = principal.getAttribute("email");
 		String student_email = "test@csumb.edu";   // student's email 
 		
+		System.out.println("Find Student");
 		Student student = studentRepository.findByEmail(student_email);
-		Course course  = courseRepository.findById(courseDTO.course_id).orElse(null);
+		System.out.println(student.toString());
+		
+		System.out.println("Find Course");
+		Course course  = courseRepository.findByCourse_id(courseDTO.course_id);
+		System.out.println(course.toString());
 		
 		// student.status
 		// = 0  ok to register
@@ -85,6 +96,7 @@ public class ScheduleController {
 			enrollment.setCourse(course);
 			enrollment.setYear(course.getYear());
 			enrollment.setSemester(course.getSemester());
+			
 			Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
 			
 			gradebookService.enrollStudent(student_email, student.getName(), course.getCourse_id());
@@ -97,15 +109,72 @@ public class ScheduleController {
 		
 	}
 	
+	@PostMapping("/addstudent")
+	@Transactional
+	public StudentDTO addStudentDTO( @RequestBody StudentDTO studentDTO ) { 
+
+		System.out.println(studentDTO);
+		Student student = studentRepository.findByEmail(studentDTO.studentEmail);
+		
+		if (student == null) {
+			//No student from email
+			student = new Student();
+			student.setEmail(studentDTO.studentEmail);
+			student.setName(studentDTO.studentName);
+			
+			//add student to database
+			Student savedstudent = studentRepository.save(student);
+
+			StudentDTO returnStudend = new StudentDTO();
+			returnStudend.id = savedstudent.getStudent_id();
+			returnStudend.studentEmail=savedstudent.getEmail();
+			returnStudend.studentName=savedstudent.getName();
+			returnStudend.studentStatus=savedstudent.getStatus();
+			returnStudend.statusCode=savedstudent.getStatusCode();
+			
+			return returnStudend;
+		} else {
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student already exists. " + studentDTO.studentEmail);
+		}
+		
+	}
+	
+	@PutMapping("/studentHold")
+	@Transactional
+	public void updateStudent( @RequestParam("email") String email, @RequestParam("hold") Boolean hold ) {
+		
+		int holdInt;
+		Student student = studentRepository.findByEmail(email);
+		
+		if (student != null) {
+
+			if (hold) {
+				holdInt = 1;
+			} else {
+				holdInt = 0;
+			}
+				
+			student.setStatusCode(holdInt);
+			
+			//add student to database
+			studentRepository.save(student);
+
+		} else {
+			throw  new ResponseStatusException( HttpStatus.BAD_REQUEST, "Student does not exist. " + email);
+		}
+		
+	}
+	
 	@DeleteMapping("/schedule/{enrollment_id}")
 	@Transactional
 	public void dropCourse(  @PathVariable int enrollment_id  ) {
 		
+		//String student_email = principal.getAttribute("email");
 		String student_email = "test@csumb.edu";   // student's email 
 		
 		// TODO  check that today's date is not past deadline to drop course.
 		
-		Enrollment enrollment = enrollmentRepository.findById(enrollment_id).orElse(null);
+		Enrollment enrollment = enrollmentRepository.findById(enrollment_id);
 		
 		// verify that student is enrolled in the course.
 		if (enrollment!=null && enrollment.getStudent().getEmail().equals(student_email)) {
