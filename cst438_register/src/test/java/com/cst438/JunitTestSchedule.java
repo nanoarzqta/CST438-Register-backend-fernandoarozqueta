@@ -213,6 +213,95 @@ public class JunitTestSchedule {
 		verify(enrollmentRepository).delete(any(Enrollment.class));
 	}
 		
+/* Junit Testing Module 2*/
+	
+	@Test
+	public void addStudent() throws Exception {
+
+		MockHttpServletResponse response;
+
+		Student student = new Student();
+		student.setEmail(TEST_STUDENT_EMAIL);
+		student.setName(TEST_STUDENT_NAME);
+		student.setStatusCode(0);
+		student.setStudent_id(1);
+
+		response = mvc
+				.perform(MockMvcRequestBuilders
+						.post("/addstudent?" + "email=" + TEST_STUDENT_EMAIL + "&name=" + TEST_STUDENT_NAME))
+				.andReturn().getResponse();
+
+		// verify that return status = OK (value 200)
+		assertEquals(200, response.getStatus());
+
+		// verify that repository save method was called.
+		verify(studentRepository).save(any(Student.class));
+
+		// given -- stubs for database repositories that return test data
+		given(studentRepository.findByEmail(TEST_STUDENT_EMAIL)).willReturn(student);
+
+		// then
+		response = mvc
+				.perform(MockMvcRequestBuilders
+						.post("/addstudent?" + "email=" + TEST_STUDENT_EMAIL + "&name=" + TEST_STUDENT_NAME))
+				.andReturn().getResponse();
+
+		// verify that return status = OK (value 200)
+		assertEquals(400, response.getStatus());
+
+	}
+
+	@Test
+	public void studentHold() throws Exception {
+
+		MockHttpServletResponse response;
+
+		Student student = new Student();
+		student.setEmail(TEST_STUDENT_EMAIL);
+		student.setName(TEST_STUDENT_NAME);
+		student.setStatusCode(0);
+		student.setStudent_id(1);
+
+		// given -- stubs for database repositories that return test data
+		given(studentRepository.findByEmail(TEST_STUDENT_EMAIL)).willReturn(student);
+
+		response = mvc.perform(MockMvcRequestBuilders.put("/studentHold?" + "email=" + TEST_STUDENT_EMAIL + "&hold=1"))
+				.andReturn().getResponse();
+
+		// verify that return status = OK (value 200)
+		assertEquals(200, response.getStatus());
+
+		// verify that repository save method was called.
+		verify(studentRepository).save(any(Student.class));
+
+	}
+
+	@Test
+	public void studentRemoveHold() throws Exception {
+
+		MockHttpServletResponse response;
+
+		Student student = new Student();
+		student.setEmail(TEST_STUDENT_EMAIL);
+		student.setName(TEST_STUDENT_NAME);
+		student.setStatusCode(0);
+		student.setStudent_id(1);
+
+		// given -- stubs for database repositories that return test data
+		given(studentRepository.findByEmail(TEST_STUDENT_EMAIL)).willReturn(student);
+
+		response = mvc
+				.perform(MockMvcRequestBuilders.put("/studentHold?" + "email=" + TEST_STUDENT_EMAIL + "&hold=True"))
+				.andReturn().getResponse();
+
+		// verify that return status = OK (value 200)
+		assertEquals(200, response.getStatus());
+
+		// verify that repository save method was called.
+		verify(studentRepository).save(any(Student.class));
+
+	}
+	
 	private static String asJsonString(final Object obj) {
 		try {
 
